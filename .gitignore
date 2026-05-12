@@ -1,0 +1,25 @@
+# Secrets and local env
+wabot.env
+*.env
+!.env.example
+
+# WhatsApp session + logs (never commit)
+store.db
+store.db-*
+*.db
+backups/
+sends.log
+
+# Built binaries
+/wabot
+/wa
+/inbox-echo
+
+# Go
+coverage.out
+*.test
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/

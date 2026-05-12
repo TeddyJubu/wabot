@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily backup timer for wabot store.db
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target
