@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /data
 VOLUME ["/data"]
 COPY --from=build /out/wabot /out/wa /out/inbox-echo /usr/local/bin/
-ENV WABOT_TOKEN=""
 EXPOSE 7777
 # Expect wabot.env and store.db under /data (mount a volume).
 CMD ["wabot"]
