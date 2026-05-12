@@ -21,8 +21,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mdp/qrterminal/v3"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/mdp/qrterminal/v3"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/store/sqlstore"
@@ -34,11 +34,11 @@ import (
 )
 
 const (
-	httpAddr        = "127.0.0.1:7777"
 	maxImageBytes   = 16 << 20 // 16 MB
 	defaultLogPath  = "sends.log"
 	defaultRatePerM = 20
 	defaultBurst    = 5
+	defaultHTTPAddr = "127.0.0.1:7777"
 )
 
 var (
@@ -402,11 +402,20 @@ func main() {
 	defer sends.close()
 	fmt.Println("Send log:", logPath)
 
+	httpAddr := os.Getenv("WABOT_HTTP_ADDR")
+	if httpAddr == "" {
+		httpAddr = defaultHTTPAddr
+	}
+
 	dbLog := waLog.Stdout("Database", "INFO", true)
 	container, err := sqlstore.New(context.Background(), "sqlite3", "file:store.db?_foreign_keys=on", dbLog)
-	if err != nil { panic(err) }
+	if err != nil {
+		panic(err)
+	}
 	deviceStore, err := container.GetFirstDevice(context.Background())
-	if err != nil { panic(err) }
+	if err != nil {
+		panic(err)
+	}
 
 	clientLog := waLog.Stdout("Client", "INFO", true)
 	client = whatsmeow.NewClient(deviceStore, clientLog)

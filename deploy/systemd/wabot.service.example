@@ -1,0 +1,16 @@
+[Unit]
+Description=WhatsApp bot (wabot daemon + HTTP API)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=@@INSTALL_DIR@@
+EnvironmentFile=@@INSTALL_DIR@@/wabot.env
+ExecStart=@@INSTALL_DIR@@/wabot
+Restart=always
+RestartSec=5
+User=@@WABOT_USER@@
+Group=@@WABOT_USER@@
+
+[Install]
+WantedBy=multi-user.target

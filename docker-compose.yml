@@ -1,0 +1,17 @@
+services:
+  wabot:
+    build: .
+    restart: unless-stopped
+    environment:
+      # Set in a `.env` file next to this compose file (not committed), e.g.:
+      #   WABOT_TOKEN=...
+      WABOT_TOKEN: ${WABOT_TOKEN:?Create a .env file with WABOT_TOKEN=... see README}
+      WABOT_HTTP_ADDR: "0.0.0.0:7777"
+    ports:
+      - "127.0.0.1:7777:7777"
+    volumes:
+      - wabot-data:/data
+    working_dir: /data
+
+volumes:
+  wabot-data:

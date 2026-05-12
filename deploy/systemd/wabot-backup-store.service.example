@@ -1,0 +1,10 @@
+[Unit]
+Description=Backup wabot WhatsApp session database (store.db)
+After=network.target
+
+[Service]
+Type=oneshot
+User=@@WABOT_USER@@
+Group=@@WABOT_USER@@
+WorkingDirectory=@@INSTALL_DIR@@
+ExecStart=@@INSTALL_DIR@@/scripts/backup-store.sh

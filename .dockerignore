@@ -1,0 +1,12 @@
+.git
+.github
+backups
+*.db
+sends.log
+wabot.env
+.env
+wabot
+wa
+inbox-echo
+*.md
+!README.md
