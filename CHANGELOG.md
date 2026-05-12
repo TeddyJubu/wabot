@@ -18,3 +18,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/install.sh`, `scripts/backup-store.sh`, and systemd unit templates under `deploy/systemd/`.
 - Dockerfile and `docker-compose.yml` for container installs.
 - GitHub Actions CI (`go test`, `go vet`).
+
+[0.1.0]: https://github.com/TeddyJubu/wabot/releases/tag/v0.1.0

@@ -174,6 +174,17 @@ docker compose up --build -d
 
 ---
 
+## Upgrading
+
+Older checkouts shipped systemd units under `deploy/` with hardcoded paths. Current templates live in [`deploy/systemd/`](deploy/systemd/) as `*.example` files. Re-install units with:
+
+```bash
+INSTALL_DIR=/path/to/wabot WABOT_USER=youruser ./scripts/install.sh --install-systemd
+sudo systemctl daemon-reload
+```
+
+---
+
 ## Development
 
 ```bash
