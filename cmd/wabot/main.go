@@ -39,6 +39,7 @@ const (
 	defaultRatePerM = 20
 	defaultBurst    = 5
 	defaultHTTPAddr = "127.0.0.1:7777"
+	pairingQRTTL    = 60 * time.Second
 )
 
 var (
@@ -46,7 +47,48 @@ var (
 	token       string
 	sendLimiter *rate.Limiter
 	sends       *sendLogger
+	pairing     pairingState
 )
+
+type pairingState struct {
+	mu      sync.Mutex
+	code    string
+	event   string
+	updated time.Time
+}
+
+func (p *pairingState) setCode(code string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.code = code
+	p.event = "code"
+	p.updated = time.Now().UTC()
+}
+
+func (p *pairingState) setEvent(event string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if event != "code" {
+		p.code = ""
+	}
+	p.event = event
+	p.updated = time.Now().UTC()
+}
+
+func (p *pairingState) snapshot() (code string, event string, updated time.Time, expires time.Time) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	event = p.event
+	updated = p.updated
+	if p.code == "" || p.updated.IsZero() {
+		return "", event, updated, time.Time{}
+	}
+	expires = p.updated.Add(pairingQRTTL)
+	if time.Now().UTC().After(expires) {
+		return "", event, updated, expires
+	}
+	return p.code, event, updated, expires
+}
 
 type sendLogger struct {
 	mu sync.Mutex
@@ -359,6 +401,30 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func handlePairingQR(w http.ResponseWriter, r *http.Request) {
+	code, event, updated, expires := pairing.snapshot()
+	loggedIn := client != nil && client.IsLoggedIn()
+	connected := client != nil && client.IsConnected()
+	detail := ""
+	if loggedIn {
+		detail = "WhatsApp is already linked."
+	} else if code == "" {
+		detail = "No fresh pairing QR is available yet. Restart wabot or wait for the next QR event."
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"logged_in":  loggedIn,
+		"connected":  connected,
+		"qr":         code,
+		"event":      event,
+		"updated_at": updated,
+		"expires_at": expires,
+		"detail":     detail,
+	})
+}
+
 func envInt(key string, def int) int {
 	v := os.Getenv(key)
 	if v == "" {
@@ -421,32 +487,13 @@ func main() {
 	client = whatsmeow.NewClient(deviceStore, clientLog)
 	client.AddEventHandler(eventHandler)
 
-	if client.Store.ID == nil {
-		qrChan, _ := client.GetQRChannel(context.Background())
-		if err := client.Connect(); err != nil {
-			fmt.Fprintln(os.Stderr, "connect:", err)
-			os.Exit(1)
-		}
-		for evt := range qrChan {
-			if evt.Event == "code" {
-				qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-			} else {
-				fmt.Println("Login event:", evt.Event)
-			}
-		}
-	} else {
-		if err := client.Connect(); err != nil {
-			fmt.Fprintln(os.Stderr, "connect:", err)
-			os.Exit(1)
-		}
-	}
-
 	mux := http.NewServeMux()
 	// Middleware order matters: auth first (free), then method check (free),
 	// then the handler. Rate limit is consumed inside each handler *after* all
 	// validation, so rejected requests never burn budget.
 	mux.HandleFunc("/send", authed(requireMethod(http.MethodPost, handleSend)))
 	mux.HandleFunc("/send-image", authed(requireMethod(http.MethodPost, handleSendImage)))
+	mux.HandleFunc("/pairing/qr", authed(requireMethod(http.MethodGet, handlePairingQR)))
 	mux.HandleFunc("/health", handleHealth)
 
 	srv := &http.Server{
@@ -460,6 +507,31 @@ func main() {
 			panic(err)
 		}
 	}()
+
+	if client.Store.ID == nil {
+		qrChan, _ := client.GetQRChannel(context.Background())
+		if err := client.Connect(); err != nil {
+			fmt.Fprintln(os.Stderr, "connect:", err)
+			os.Exit(1)
+		}
+		go func() {
+			for evt := range qrChan {
+				if evt.Event == "code" {
+					pairing.setCode(evt.Code)
+					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
+				} else {
+					pairing.setEvent(evt.Event)
+					fmt.Println("Login event:", evt.Event)
+				}
+			}
+		}()
+	} else {
+		pairing.setEvent("linked")
+		if err := client.Connect(); err != nil {
+			fmt.Fprintln(os.Stderr, "connect:", err)
+			os.Exit(1)
+		}
+	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)

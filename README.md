@@ -81,10 +81,13 @@ Number format: country code + digits, no `+` or spaces (or full JID like `...@g.
 ### HTTP API
 
 - `GET /health`
+- `GET /pairing/qr` for browser-based linked-device setup
 - `POST /send` with JSON `{ "to": "...", "text": "..." }`
 - `POST /send-image` with multipart `to`, `file`, optional `caption`
 
-Mutating routes require header `X-Token`.
+Routes except `/health` require header `X-Token`.
+
+`/pairing/qr` returns the latest fresh WhatsApp Web pairing code as JSON so a local dashboard can render a scan-able QR without asking the user to watch terminal logs. It is only available while the daemon is waiting for a linked-device login; already-linked sessions return linked status instead.
 
 ### systemd templates
 
@@ -134,4 +137,3 @@ go vet ./...
 - This project is MIT licensed: see `LICENSE`.
 - Dependencies include MPL-2.0 code (`go.mau.fi/whatsmeow`): see `THIRD_PARTY.md`.
 - You are responsible for compliant use with WhatsApp terms/policies.
-

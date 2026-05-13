@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"go.mau.fi/whatsmeow/types"
 	"golang.org/x/time/rate"
@@ -40,6 +42,60 @@ func TestResolveJID(t *testing.T) {
 					got.User, got.Server, tc.wantUser, tc.wantSrv)
 			}
 		})
+	}
+}
+
+func TestPairingStateSnapshotExpires(t *testing.T) {
+	var p pairingState
+	if code, _, _, _ := p.snapshot(); code != "" {
+		t.Fatalf("empty state returned code %q", code)
+	}
+
+	p.setCode("qr-code")
+	code, event, updated, expires := p.snapshot()
+	if code != "qr-code" || event != "code" {
+		t.Fatalf("code=%q event=%q", code, event)
+	}
+	if updated.IsZero() || expires.IsZero() || !expires.After(updated) {
+		t.Fatalf("bad timestamps updated=%v expires=%v", updated, expires)
+	}
+
+	p.updated = time.Now().UTC().Add(-(pairingQRTTL + time.Second))
+	code, _, _, _ = p.snapshot()
+	if code != "" {
+		t.Fatalf("expired state returned code %q", code)
+	}
+}
+
+func TestHandlePairingQR(t *testing.T) {
+	oldPairing := pairing
+	oldClient := client
+	pairing = pairingState{}
+	client = nil
+	t.Cleanup(func() {
+		pairing = oldPairing
+		client = oldClient
+	})
+	pairing.setCode("qr-code")
+
+	rec := httptest.NewRecorder()
+	handlePairingQR(rec, httptest.NewRequest(http.MethodGet, "/pairing/qr", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d", rec.Code)
+	}
+	var body struct {
+		QR    string `json:"qr"`
+		Event string `json:"event"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.QR != "qr-code" || body.Event != "code" {
+		t.Fatalf("body=%+v", body)
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("Cache-Control=%q", got)
 	}
 }
 
