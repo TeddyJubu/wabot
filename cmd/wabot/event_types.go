@@ -26,4 +26,6 @@ type historySyncPayload struct {
 	SyncType          string `json:"sync_type"`
 	ConversationCount int    `json:"conversation_count"`
 	MessageCount      int    `json:"message_count"`
+	ChunkOrder        uint32 `json:"chunk_order,omitempty"`
+	Progress          uint32 `json:"progress,omitempty"`
 }
