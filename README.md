@@ -78,6 +78,18 @@ Number format: country code + digits, no `+` or spaces (or full JID like `...@g.
 
 `wabot.env` is generated/managed by setup/doctor.
 
+Production webhook URLs (loopback only — pair with [wabot-agent](https://github.com/TeddyJubu/wabot-agent)):
+
+| Variable | Example |
+|---|---|
+| `WABOT_INBOUND_URL` | `http://127.0.0.1:8787/whatsapp/inbound` |
+| `WABOT_RECEIPT_URL` | `http://127.0.0.1:8787/whatsapp/receipt` |
+| `WABOT_PRESENCE_URL` | `http://127.0.0.1:8787/whatsapp/presence` |
+| `WABOT_HISTORY_SYNC_URL` | `http://127.0.0.1:8787/whatsapp/history-sync` |
+| `WABOT_HISTORY_URL` | `http://127.0.0.1:8787/whatsapp/history` |
+
+Use the same bearer token for agent webhooks (`WABOT_INBOUND_TOKEN` on both sides).
+
 ### HTTP API
 
 - `GET /health`
