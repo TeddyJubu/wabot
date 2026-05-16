@@ -131,14 +131,3 @@ func handleGroupJoin(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, map[string]any{"ok": true, "jid": jid.String()})
 }
-
-func handleGroupsRoot(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		handleGroupsList(w, r)
-	case http.MethodPost:
-		handleGroupCreate(w, r)
-	default:
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-	}
-}
