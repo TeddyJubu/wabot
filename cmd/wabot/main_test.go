@@ -67,6 +67,42 @@ func TestPairingStateSnapshotExpires(t *testing.T) {
 	}
 }
 
+func TestInboxRecentReturnsRecordedMessages(t *testing.T) {
+	inboxMu.Lock()
+	inboxEntries = nil
+	inboxMu.Unlock()
+	t.Cleanup(func() {
+		inboxMu.Lock()
+		inboxEntries = nil
+		inboxMu.Unlock()
+	})
+
+	recordInboundMessage(types.MessageInfo{
+		MessageSource: types.MessageSource{
+			Sender: types.NewJID("15550001111", types.DefaultUserServer),
+			Chat:   types.NewJID("15550001111", types.DefaultUserServer),
+		},
+		ID:        "msg-1",
+		Timestamp: time.Now(),
+	}, "hello there")
+
+	rec := httptest.NewRecorder()
+	handleInboxRecent(rec, httptest.NewRequest(http.MethodGet, "/inbox/recent?limit=5", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("code=%d", rec.Code)
+	}
+	var body struct {
+		Count    int               `json:"count"`
+		Messages []inboundPayload  `json:"messages"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Count != 1 || len(body.Messages) != 1 || body.Messages[0].Text != "hello there" {
+		t.Fatalf("body=%+v", body)
+	}
+}
+
 func TestHandlePairingQR(t *testing.T) {
 	oldPairing := pairing
 	oldClient := client

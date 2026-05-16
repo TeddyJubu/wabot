@@ -123,12 +123,14 @@ func postInboundWebhook(info types.MessageInfo, text string) {
 }
 
 func handleIncomingMessage(v *events.Message) {
+	text := extractInboundText(v.Message)
 	if v.Info.IsFromMe {
+		recordInboundMessage(v.Info, text)
 		return
 	}
 
-	text := extractInboundText(v.Message)
 	fmt.Println("From", v.Info.Sender.User, ":", text)
+	recordInboundMessage(v.Info, text)
 
 	if os.Getenv("WABOT_INBOUND_URL") != "" {
 		go postInboundWebhook(v.Info, text)
