@@ -65,17 +65,7 @@ func extractInboundText(m *waE2E.Message) string {
 	return ""
 }
 
-type inboundPayload struct {
-	ID        string `json:"id"`
-	Timestamp string `json:"timestamp"`
-	From      string `json:"from"`
-	Chat      string `json:"chat"`
-	IsGroup   bool   `json:"is_group"`
-	PushName  string `json:"push_name,omitempty"`
-	Text      string `json:"text"`
-}
-
-func postInboundWebhook(info types.MessageInfo, text string) {
+func postInboundWebhook(info types.MessageInfo, text string, msg *waE2E.Message) {
 	url := os.Getenv("WABOT_INBOUND_URL")
 	if url == "" {
 		return
@@ -87,15 +77,8 @@ func postInboundWebhook(info types.MessageInfo, text string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(sec)*time.Second)
 	defer cancel()
 
-	body, err := json.Marshal(inboundPayload{
-		ID:        string(info.ID),
-		Timestamp: info.Timestamp.UTC().Format(time.RFC3339Nano),
-		From:      info.Sender.String(),
-		Chat:      info.Chat.String(),
-		IsGroup:   info.IsGroup,
-		PushName:  info.PushName,
-		Text:      text,
-	})
+	payload := inboundPayloadFromMessage(info, text, msg)
+	body, err := json.Marshal(payload)
 	if err != nil {
 		fmt.Println("inbound webhook: marshal:", err)
 		return
@@ -124,16 +107,17 @@ func postInboundWebhook(info types.MessageInfo, text string) {
 
 func handleIncomingMessage(v *events.Message) {
 	text := extractInboundText(v.Message)
+	mediaCachePut(v.Info, v.Message)
 	if v.Info.IsFromMe {
-		recordInboundMessage(v.Info, text)
+		recordInboundMessage(v.Info, text, v.Message)
 		return
 	}
 
 	fmt.Println("From", v.Info.Sender.User, ":", text)
-	recordInboundMessage(v.Info, text)
+	recordInboundMessage(v.Info, text, v.Message)
 
 	if os.Getenv("WABOT_INBOUND_URL") != "" {
-		go postInboundWebhook(v.Info, text)
+		go postInboundWebhook(v.Info, text, v.Message)
 	}
 
 	var reply string

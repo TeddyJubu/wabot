@@ -499,6 +499,8 @@ func main() {
 	mux.HandleFunc("/groups", authed(requireMethod(http.MethodGet, handleGroupsList)))
 	mux.HandleFunc("/chats/read", authed(requireMethod(http.MethodPost, handleChatsRead)))
 	mux.HandleFunc("/presence/typing", authed(requireMethod(http.MethodPost, handlePresenceTyping)))
+	mux.HandleFunc("/media/download", authed(requireMethod(http.MethodGet, handleMediaDownload)))
+	mux.HandleFunc("/send-media", authed(requireMethod(http.MethodPost, handleSendMedia)))
 	mux.HandleFunc("/health", handleHealth)
 
 	srv := &http.Server{

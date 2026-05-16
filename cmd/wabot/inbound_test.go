@@ -66,16 +66,46 @@ func TestPostInboundWebhook(t *testing.T) {
 		Timestamp: time.Date(2026, 5, 12, 12, 0, 0, 0, time.UTC),
 		PushName:  "Bob",
 	}
-	postInboundWebhook(info, "hello")
+	postInboundWebhook(info, "hello", nil)
 
 	if gotAuth != "Bearer secret" {
 		t.Fatalf("Authorization: %q", gotAuth)
 	}
 }
 
+func TestPostInboundWebhookIncludesMediaFields(t *testing.T) {
+	var body string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		body = string(b)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	t.Setenv("WABOT_INBOUND_URL", srv.URL)
+	msg := &waE2E.Message{
+		DocumentMessage: &waE2E.DocumentMessage{
+			FileName: proto.String("x.pdf"),
+			Mimetype: proto.String("application/pdf"),
+		},
+	}
+	info := types.MessageInfo{
+		MessageSource: types.MessageSource{
+			Chat:   types.JID{User: "111", Server: types.DefaultUserServer},
+			Sender: types.JID{User: "222", Server: types.DefaultUserServer},
+		},
+		ID:        types.MessageID("doc1"),
+		Timestamp: time.Now().UTC(),
+	}
+	postInboundWebhook(info, "[document: x.pdf]", msg)
+	if !strings.Contains(body, `"has_media":true`) || !strings.Contains(body, `"media_kind":"document"`) {
+		t.Fatalf("body %s", body)
+	}
+}
+
 func TestPostInboundWebhookNoURL(t *testing.T) {
 	t.Setenv("WABOT_INBOUND_URL", "")
-	postInboundWebhook(types.MessageInfo{}, "x")
+	postInboundWebhook(types.MessageInfo{}, "x", nil)
 }
 
 func TestScheduleReconnectNilClient(t *testing.T) {

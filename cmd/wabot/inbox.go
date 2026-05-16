@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-	"time"
 
+	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/types"
 )
 
@@ -17,16 +17,8 @@ var (
 	inboxEntries []inboundPayload
 )
 
-func recordInboundMessage(info types.MessageInfo, text string) {
-	payload := inboundPayload{
-		ID:        info.ID,
-		Timestamp: info.Timestamp.UTC().Format(time.RFC3339),
-		From:      info.Sender.String(),
-		Chat:      info.Chat.String(),
-		IsGroup:   info.IsGroup,
-		PushName:  info.PushName,
-		Text:      text,
-	}
+func recordInboundMessage(info types.MessageInfo, text string, msg *waE2E.Message) {
+	payload := inboundPayloadFromMessage(info, text, msg)
 	inboxMu.Lock()
 	defer inboxMu.Unlock()
 	inboxEntries = append(inboxEntries, payload)

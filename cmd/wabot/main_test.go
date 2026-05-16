@@ -84,7 +84,7 @@ func TestInboxRecentReturnsRecordedMessages(t *testing.T) {
 		},
 		ID:        "msg-1",
 		Timestamp: time.Now(),
-	}, "hello there")
+	}, "hello there", nil)
 
 	rec := httptest.NewRecorder()
 	handleInboxRecent(rec, httptest.NewRequest(http.MethodGet, "/inbox/recent?limit=5", nil))
