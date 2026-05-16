@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"time"
 
 	"go.mau.fi/whatsmeow/types/events"
@@ -51,19 +50,6 @@ func handleHistorySyncEvent(v *events.HistorySync) {
 	if v == nil || v.Data == nil {
 		return
 	}
-	if os.Getenv("WABOT_HISTORY_SYNC_URL") == "" {
-		return
-	}
-	convs := len(v.Data.GetConversations())
-	msgs := 0
-	for _, c := range v.Data.GetConversations() {
-		msgs += len(c.GetMessages())
-	}
-	payload := historySyncPayload{
-		Type:              "history_sync",
-		SyncType:          v.Data.GetSyncType().String(),
-		ConversationCount: convs,
-		MessageCount:      msgs,
-	}
-	go postJSONWebhook("WABOT_HISTORY_SYNC_URL", payload)
+	go postHistorySyncSummary(v)
+	go deliverHistorySyncMessages(v)
 }

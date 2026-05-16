@@ -18,7 +18,10 @@ func webhookToken() string {
 }
 
 func postJSONWebhook(urlEnv string, payload any) {
-	url := os.Getenv(urlEnv)
+	postJSONWebhookURL(os.Getenv(urlEnv), payload)
+}
+
+func postJSONWebhookURL(url string, payload any) {
 	if url == "" {
 		return
 	}
@@ -31,12 +34,12 @@ func postJSONWebhook(urlEnv string, payload any) {
 
 	body, err := json.Marshal(payload)
 	if err != nil {
-		fmt.Println("webhook:", urlEnv, "marshal:", err)
+		fmt.Println("webhook:", url, "marshal:", err)
 		return
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
-		fmt.Println("webhook:", urlEnv, "request:", err)
+		fmt.Println("webhook:", url, "request:", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -45,11 +48,11 @@ func postJSONWebhook(urlEnv string, payload any) {
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println("webhook:", urlEnv, ":", err)
+		fmt.Println("webhook:", url, ":", err)
 		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		fmt.Println("webhook:", urlEnv, "upstream HTTP", resp.StatusCode)
+		fmt.Println("webhook:", url, "upstream HTTP", resp.StatusCode)
 	}
 }
