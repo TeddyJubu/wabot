@@ -8,14 +8,7 @@ import (
 
 func newAPIMux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /groups", authed(handleGroupsList))
-	mux.HandleFunc("POST /groups", authed(handleGroupCreate))
-	mux.HandleFunc("GET /groups/{jid}", authed(handleGroupInfo))
-	mux.HandleFunc("POST /groups/{jid}/invite", authed(handleGroupInvite))
-	mux.HandleFunc("POST /groups/join", authed(handleGroupJoin))
-	mux.HandleFunc("POST /messages/react", authed(handleMessageReact))
-	mux.HandleFunc("PATCH /messages/edit", authed(handleMessageEdit))
-	mux.HandleFunc("DELETE /messages/{id}", authed(handleMessageRevoke))
+	registerPhase3Routes(mux)
 	return mux
 }
 

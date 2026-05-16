@@ -52,11 +52,7 @@ func handleMessageReact(w http.ResponseWriter, r *http.Request) {
 	}
 	chatJID, senderJID, msgID, err := parseMessageTarget(req.Chat, req.Sender, req.MessageID)
 	if err != nil {
-		if _, ok := err.(badRequestError); ok {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		} else {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	if !reserveSend(w) {
@@ -129,10 +125,6 @@ func handleMessageEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleMessageRevoke(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	messageID := strings.TrimSpace(r.PathValue("id"))
 	if messageID == "" {
 		http.Error(w, "missing message id in path", http.StatusBadRequest)

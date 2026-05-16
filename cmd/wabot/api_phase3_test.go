@@ -20,11 +20,14 @@ func TestGroupInfoToMapEmpty(t *testing.T) {
 	}
 }
 
-func TestHandleGroupsRootMethodNotAllowed(t *testing.T) {
+func TestPhase3MuxGroupsUnsupportedMethod(t *testing.T) {
+	token = "test-token"
+	mux := newAPIMux()
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPut, "/groups", nil)
-	handleGroupsRoot(rec, req)
+	req.Header.Set("X-Token", "test-token")
+	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusMethodNotAllowed {
-		t.Fatalf("code=%d", rec.Code)
+		t.Fatalf("PUT /groups: want 405, got %d", rec.Code)
 	}
 }
