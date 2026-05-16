@@ -9,6 +9,7 @@ import (
 func newAPIMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	registerPhase3Routes(mux)
+	registerPhase4Routes(mux)
 	return mux
 }
 
@@ -25,6 +26,9 @@ func TestPhase3MuxRoutesReachable(t *testing.T) {
 		{http.MethodPost, "/groups/join"},
 		{http.MethodGet, "/groups/some-group@g.us"},
 		{http.MethodPost, "/groups/some-group@g.us/invite"},
+		{http.MethodPost, "/chats/15550001111@s.whatsapp.net/mute"},
+		{http.MethodPost, "/chats/15550001111@s.whatsapp.net/archive"},
+		{http.MethodPost, "/chats/15550001111@s.whatsapp.net/pin"},
 	} {
 		t.Run(tc.method+" "+tc.path, func(t *testing.T) {
 			rec := httptest.NewRecorder()
