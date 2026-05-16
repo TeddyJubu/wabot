@@ -104,13 +104,19 @@ func TestInboxRecentReturnsRecordedMessages(t *testing.T) {
 }
 
 func TestHandlePairingQR(t *testing.T) {
-	oldPairing := pairing
 	oldClient := client
-	pairing = pairingState{}
 	client = nil
+	pairing.mu.Lock()
+	oldCode, oldEvent, oldUpdated := pairing.code, pairing.event, pairing.updated
+	pairing.code = ""
+	pairing.event = ""
+	pairing.updated = time.Time{}
+	pairing.mu.Unlock()
 	t.Cleanup(func() {
-		pairing = oldPairing
 		client = oldClient
+		pairing.mu.Lock()
+		pairing.code, pairing.event, pairing.updated = oldCode, oldEvent, oldUpdated
+		pairing.mu.Unlock()
 	})
 	pairing.setCode("qr-code")
 
