@@ -504,6 +504,7 @@ func main() {
 	mux.HandleFunc("/contacts/lookup", authed(requireMethod(http.MethodPost, handleContactsLookup)))
 	registerPhase3Routes(mux)
 	registerPhase4Routes(mux)
+	registerPhase5Routes(mux)
 	mux.HandleFunc("/chats/read", authed(requireMethod(http.MethodPost, handleChatsRead)))
 	mux.HandleFunc("/presence/typing", authed(requireMethod(http.MethodPost, handlePresenceTyping)))
 	mux.HandleFunc("/media/download", authed(requireMethod(http.MethodGet, handleMediaDownload)))

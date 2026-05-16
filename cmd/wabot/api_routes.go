@@ -20,3 +20,9 @@ func registerPhase4Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /chats/{jid}/archive", authed(handleChatArchive))
 	mux.HandleFunc("POST /chats/{jid}/pin", authed(handleChatPin))
 }
+
+// registerPhase5Routes wires user profile info and avatar download.
+func registerPhase5Routes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /users/{jid}", authed(handleUserInfo))
+	mux.HandleFunc("GET /users/{jid}/picture", authed(handleUserPicture))
+}
