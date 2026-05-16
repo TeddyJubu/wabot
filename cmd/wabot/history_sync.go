@@ -194,7 +194,7 @@ func historyDBConn(path string) (*sql.DB, error) {
 		_ = historyDB.Close()
 		historyDB = nil
 	}
-	db, err := sql.Open("sqlite", path)
+	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, err
 	}
