@@ -451,11 +451,18 @@ func runPairingLoginLoop() {
 			}
 			pairing.setEvent(evt.Event)
 			fmt.Println("Login event:", evt.Event)
-			if evt.Event == "timeout" {
+			switch evt.Event {
+			case "timeout":
 				retry = true
+			case "success":
+				pairing.setEvent("linked")
+				connectLinkedSession()
+				return
 			}
 		}
 		if client.IsLoggedIn() {
+			pairing.setEvent("linked")
+			connectLinkedSession()
 			return
 		}
 		client.Disconnect()
@@ -463,6 +470,18 @@ func runPairingLoginLoop() {
 			return
 		}
 		time.Sleep(2 * time.Second)
+	}
+}
+
+func connectLinkedSession() {
+	if client == nil {
+		return
+	}
+	if client.IsConnected() && client.IsLoggedIn() {
+		return
+	}
+	if err := client.Connect(); err != nil && !errors.Is(err, whatsmeow.ErrAlreadyConnected) {
+		fmt.Fprintln(os.Stderr, "connect after pairing:", err)
 	}
 }
 
@@ -562,8 +581,9 @@ func main() {
 		go runPairingLoginLoop()
 	} else {
 		pairing.setEvent("linked")
-		if err := client.Connect(); err != nil {
-			fmt.Fprintln(os.Stderr, "connect:", err)
+		connectLinkedSession()
+		if client != nil && !client.IsConnected() {
+			fmt.Fprintln(os.Stderr, "connect:", "session not connected after startup")
 			os.Exit(1)
 		}
 	}
