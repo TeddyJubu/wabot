@@ -39,7 +39,7 @@ const (
 	defaultRatePerM = 20
 	defaultBurst    = 5
 	defaultHTTPAddr = "127.0.0.1:7777"
-	pairingQRTTL    = 60 * time.Second
+	pairingQRTTL    = 120 * time.Second
 )
 
 var (
@@ -431,6 +431,41 @@ func handlePairingQR(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func runPairingLoginLoop() {
+	for {
+		if client.IsLoggedIn() {
+			return
+		}
+		qrChan, _ := client.GetQRChannel(context.Background())
+		if err := client.Connect(); err != nil {
+			fmt.Fprintln(os.Stderr, "connect:", err)
+			time.Sleep(3 * time.Second)
+			continue
+		}
+		retry := false
+		for evt := range qrChan {
+			if evt.Event == "code" {
+				pairing.setCode(evt.Code)
+				qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
+				continue
+			}
+			pairing.setEvent(evt.Event)
+			fmt.Println("Login event:", evt.Event)
+			if evt.Event == "timeout" {
+				retry = true
+			}
+		}
+		if client.IsLoggedIn() {
+			return
+		}
+		client.Disconnect()
+		if !retry {
+			return
+		}
+		time.Sleep(2 * time.Second)
+	}
+}
+
 func envInt(key string, def int) int {
 	v := os.Getenv(key)
 	if v == "" {
@@ -524,22 +559,7 @@ func main() {
 	}()
 
 	if client.Store.ID == nil {
-		qrChan, _ := client.GetQRChannel(context.Background())
-		if err := client.Connect(); err != nil {
-			fmt.Fprintln(os.Stderr, "connect:", err)
-			os.Exit(1)
-		}
-		go func() {
-			for evt := range qrChan {
-				if evt.Event == "code" {
-					pairing.setCode(evt.Code)
-					qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-				} else {
-					pairing.setEvent(evt.Event)
-					fmt.Println("Login event:", evt.Event)
-				}
-			}
-		}()
+		go runPairingLoginLoop()
 	} else {
 		pairing.setEvent("linked")
 		if err := client.Connect(); err != nil {
