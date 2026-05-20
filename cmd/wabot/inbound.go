@@ -65,6 +65,15 @@ func extractInboundText(m *waE2E.Message) string {
 	return ""
 }
 
+// inboundShouldProcess is false for WhatsApp events with no user-visible text and no media
+// (e.g. encryption/session placeholders that arrive as a separate event before the real message).
+func inboundShouldProcess(text string, msg *waE2E.Message) bool {
+	if strings.TrimSpace(text) != "" {
+		return true
+	}
+	return extractMediaMeta(msg).HasMedia
+}
+
 func postInboundWebhook(info types.MessageInfo, text string, msg *waE2E.Message) {
 	url := os.Getenv("WABOT_INBOUND_URL")
 	if url == "" {
@@ -116,8 +125,14 @@ func handleIncomingMessage(v *events.Message) {
 	fmt.Println("From", v.Info.Sender.User, ":", text)
 	recordInboundMessage(v.Info, text, v.Message)
 
-	if os.Getenv("WABOT_INBOUND_URL") != "" {
+	if !inboundShouldProcess(text, v.Message) {
+		return
+	}
+
+	agentURL := os.Getenv("WABOT_INBOUND_URL")
+	if agentURL != "" {
 		go postInboundWebhook(v.Info, text, v.Message)
+		return
 	}
 
 	var reply string

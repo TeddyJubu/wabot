@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 
@@ -292,4 +293,69 @@ func handleGroupLeave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"ok": true, "jid": groupJID.String(), "left": true})
+}
+
+func handleGroupPicture(w http.ResponseWriter, r *http.Request) {
+	if !requireReadyClient(w) {
+		return
+	}
+	groupJID, ok := parseGroupJIDFromPath(w, r.PathValue("jid"))
+	if !ok {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), apiTimeout)
+	defer cancel()
+
+	switch r.Method {
+	case http.MethodDelete:
+		pictureID, err := client.SetGroupPhoto(ctx, groupJID, nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, map[string]any{"ok": true, "jid": groupJID.String(), "picture_id": pictureID, "removed": true})
+		return
+	case http.MethodPost:
+		r.Body = http.MaxBytesReader(w, r.Body, maxMediaBytes+1<<20)
+		if err := r.ParseMultipartForm(maxMediaBytes + 1<<20); err != nil {
+			http.Error(w, "invalid multipart: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		if strings.EqualFold(strings.TrimSpace(r.FormValue("remove")), "true") {
+			pictureID, err := client.SetGroupPhoto(ctx, groupJID, nil)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			writeJSON(w, map[string]any{"ok": true, "jid": groupJID.String(), "picture_id": pictureID, "removed": true})
+			return
+		}
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			http.Error(w, "missing 'file': "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		data, err := io.ReadAll(io.LimitReader(file, maxMediaBytes+1))
+		if err != nil {
+			http.Error(w, "read file: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		if len(data) == 0 {
+			http.Error(w, "empty file", http.StatusBadRequest)
+			return
+		}
+		if len(data) > maxMediaBytes {
+			http.Error(w, "file too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+		pictureID, err := client.SetGroupPhoto(ctx, groupJID, data)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		writeJSON(w, map[string]any{"ok": true, "jid": groupJID.String(), "picture_id": pictureID})
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
 }

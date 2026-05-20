@@ -103,6 +103,21 @@ func TestPostInboundWebhookIncludesMediaFields(t *testing.T) {
 	}
 }
 
+func TestInboundShouldProcess(t *testing.T) {
+	if inboundShouldProcess("", nil) {
+		t.Fatal("nil message with empty text should not process")
+	}
+	if !inboundShouldProcess("", &waE2E.Message{ImageMessage: &waE2E.ImageMessage{}}) {
+		t.Fatal("image without caption should process")
+	}
+	if !inboundShouldProcess("hello", nil) {
+		t.Fatal("non-empty text should process")
+	}
+	if inboundShouldProcess("   ", nil) {
+		t.Fatal("whitespace-only text should not process")
+	}
+}
+
 func TestPostInboundWebhookNoURL(t *testing.T) {
 	t.Setenv("WABOT_INBOUND_URL", "")
 	postInboundWebhook(types.MessageInfo{}, "x", nil)

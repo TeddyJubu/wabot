@@ -10,6 +10,8 @@ func registerPhase3Routes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /groups/{jid}", authed(handleGroupUpdate))
 	mux.HandleFunc("POST /groups/{jid}/participants", authed(handleGroupParticipants))
 	mux.HandleFunc("POST /groups/{jid}/leave", authed(handleGroupLeave))
+	mux.HandleFunc("POST /groups/{jid}/picture", authed(handleGroupPicture))
+	mux.HandleFunc("DELETE /groups/{jid}/picture", authed(handleGroupPicture))
 	mux.HandleFunc("POST /groups/{jid}/invite", authed(handleGroupInvite))
 	mux.HandleFunc("POST /groups/join", authed(handleGroupJoin))
 	mux.HandleFunc("POST /messages/react", authed(handleMessageReact))
